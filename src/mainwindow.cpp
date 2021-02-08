@@ -20,9 +20,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_statusbar_label = new QLabel(QString::fromLocal8Bit("当前状态"),this);
     ui->statusbar->addWidget(m_statusbar_label);
     //生成xml配置文件
-    m_config.make_config_xml(MyGlobal::the_config_file_path);
+//    m_config.make_config_xml(MyGlobal::the_config_file_path);
 
-    m_config.read_config_xml(MyGlobal::the_config_file_path);
+    if(!m_config.read_config_xml(MyGlobal::the_config_file_path))
+    {
+        QMessageBox::critical(this,QString::fromLocal8Bit("警告"),QString::fromLocal8Bit("读取配置文件失败，请检查配置文件！"));
+        exit(EXIT_FAILURE);
+    }
 
     m_excel_header = m_config.get_excel_header();
     m_upload_header = m_config.get_upload_header();

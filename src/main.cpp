@@ -5,7 +5,7 @@
 #include <QTableView>
 #include <QStandardItemModel>
 #include <QMessageBox>
-
+#include <QCommandLineOption>
 
 #include "xlsxdocument.h"
 #include "xlsxworksheet.h"
@@ -16,6 +16,9 @@
 #include <string>
 #include <iostream>
 #include <bitset>
+
+#include "config.h"
+#include "myglobal.h"
 
 void test_qtxlsx()
 {
@@ -86,20 +89,44 @@ int main(int argc, char *argv[])
     //    QApplication a(argc, argv);
     QtSingleApplication a(argc,argv);
 
-    a.setApplicationDisplayName(QString::fromLocal8Bit("接收登记"));
-    a.setApplicationName(QString::fromLocal8Bit("接收登记"));
-    a.setApplicationVersion(QString::fromLocal8Bit("1.0.0"));
-
     if(a.isRunning())
     {
         QMessageBox::information(nullptr,QString::fromLocal8Bit("提示"),QString::fromLocal8Bit("已经有一个实例在运行了！"));
             a.sendMessage(QString::fromLocal8Bit("raise_window_noop"));
         return EXIT_SUCCESS;
     }
+    QString commandline_option_config_str = QString::fromLocal8Bit("make-config");
+
+    QCommandLineOption op_make_config(commandline_option_config_str,QString::fromLocal8Bit("生成默认的配置文件。"));
+    QCommandLineParser op_parser;
+    op_parser.addOption(op_make_config);
+    QCommandLineOption op_help = op_parser.addHelpOption();
+    op_parser.process(a);
+    if(op_parser.isSet(op_help))
+    {
+        op_parser.showHelp();
+        return EXIT_SUCCESS;
+    }
+
+    if(op_parser.isSet(commandline_option_config_str))
+    {
+        Config temp_config;
+        if(temp_config.make_config_xml(MyGlobal::the_config_file_path))
+        {
+            std::cout << "make config successfully!\nPlease check "<< MyGlobal::the_config_file_path.toLocal8Bit().data() << std::endl;
+        }
+        else
+        {
+            std::cout << "make config failed!" << std::endl;
+        }
+
+
+    }
     MainWindow w;
     w.setWindowTitle(QString::fromLocal8Bit("接收登记"));
     w.setWindowIcon(QIcon(":/Icon/Resource/title.ico"));
     w.show();
+
     //    test_excelformat();
     //    test_qtxlsx();
 
