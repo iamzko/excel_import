@@ -9,6 +9,8 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 include(./QtXlsxWriter/src/xlsx/qtxlsx.pri)
 include(./qtsingleapplication/src/qtsingleapplication.pri)
+#include(./qtsoap/src/qtsoap.pri)
+include(./soap/qtsoap.pri)
 #QT      += xlsx
 #设置了RC_FILE，那末RC_ICONS，及以下QMAKE_TARGET_XXXX就失效了
 win32:RC_FILE = myapp.rc
@@ -29,10 +31,11 @@ win32:RC_FILE = myapp.rc
 
 CONFIG(release,debug|releasea):
 {
-DEFINES += QT_NO_WARNING_OUTPUT
-DEFINES += QT_NO_DEBUG_OUTPUT
+#DEFINES += QT_NO_WARNING_OUTPUT
+#DEFINES += QT_NO_DEBUG_OUTPUT
 }
 INCLUDEPATH += src/
+INCLUDEPATH += webservice/
 
 SOURCES += \
     ExcelFormat/BasicExcel.cpp \
@@ -47,7 +50,10 @@ SOURCES += \
     src/mainwindow.cpp \
     src/myglobal.cpp \
     src/sheetmodel.cpp \
-    src/sheetmodelprivate.cpp
+    src/sheetmodelprivate.cpp \
+    webservice/soapC.cpp \
+    webservice/soapClient.cpp \
+    webservice/stdsoap2.cpp
 
 HEADERS += \
     ExcelFormat/BasicExcel.hpp \
@@ -61,8 +67,11 @@ HEADERS += \
     src/mainwindow.h \
     src/myglobal.h \
     src/sheetmodel.h \
-    src/sheetmodelprivate.h
-
+    src/sheetmodelprivate.h \
+    webservice/Service1Soap.nsmap \
+    webservice/soapH.h \
+    webservice/soapStub.h \
+    webservice/stdsoap2.h
 FORMS += \
     mainwindow.ui
 

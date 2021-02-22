@@ -6,12 +6,14 @@
 #include <QStandardItemModel>
 #include <QMessageBox>
 #include <QCommandLineOption>
+#include <qapplication.h>
 
 #include "xlsxdocument.h"
 #include "xlsxworksheet.h"
 #include "xlsxcellrange.h"
 #include "sheetmodel.h"
 #include "ExcelFormat/ExcelFormat.h"
+
 
 #include <string>
 #include <iostream>
@@ -83,21 +85,54 @@ void test_excelformat()
 
 }
 
+void my_message_output(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray local_msg = msg.toLocal8Bit();
+    const char *file = context.file?context.file:"./log.txt";
+    const char *function = context.function?context.function:"";
+    switch(type)
+    {
+    case QtDebugMsg:
+        fprintf(stderr,"Debug: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        break;
+    case QtInfoMsg:
+        fprintf(stderr,"Info: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        break;
+    case QtWarningMsg:
+        fprintf(stderr,"Warning: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        break;
+    case QtCriticalMsg:
+        fprintf(stderr,"Critical: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        break;
+    case QtFatalMsg:
+        fprintf(stderr,"Fatal: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        break;
+
+    }
+
+}
+
+void test_qt_log()
+{
+    qInstallMessageHandler(my_message_output);
+}
+
 
 int main(int argc, char *argv[])
 {
+    //test_qt_log();
     //    QApplication a(argc, argv);
     QtSingleApplication a(argc,argv);
 
     if(a.isRunning())
     {
-        QMessageBox::information(nullptr,QString::fromLocal8Bit("提示"),QString::fromLocal8Bit("已经有一个实例在运行了！"));
-            a.sendMessage(QString::fromLocal8Bit("raise_window_noop"));
+        QMessageBox::information(nullptr,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"已经有一个实例在运行了！"));
+            a.sendMessage(QString::fromUtf8(u8"raise_window_noop"));
         return EXIT_SUCCESS;
     }
-    QString commandline_option_config_str = QString::fromLocal8Bit("make-config");
+    QString commandline_option_config_str = QString::fromUtf8(u8"make-config");
 
-    QCommandLineOption op_make_config(commandline_option_config_str,QString::fromLocal8Bit("生成默认的配置文件。"));
+    QCommandLineOption op_make_config(commandline_option_config_str,QString::fromUtf8(u8"生成默认的配置文件。"));
     QCommandLineParser op_parser;
     op_parser.addOption(op_make_config);
     QCommandLineOption op_help = op_parser.addHelpOption();
@@ -123,7 +158,7 @@ int main(int argc, char *argv[])
 
     }
     MainWindow w;
-    w.setWindowTitle(QString::fromLocal8Bit("接收登记"));
+    w.setWindowTitle(QString::fromUtf8(u8"接收登记"));
     w.setWindowIcon(QIcon(":/Icon/Resource/title.ico"));
     w.show();
 

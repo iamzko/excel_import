@@ -4,9 +4,9 @@
 
 ExcelChecker::ExcelChecker()
 {
-    m_error_reason_not_null = QString::fromLocal8Bit("此处不能为空");
-    m_error_reason_must_null = QString::fromLocal8Bit("此处必须为空");
-    m_error_reason_format_not_match = QString::fromLocal8Bit("格式不匹配");
+    m_error_reason_not_null = QString::fromUtf8(u8"此处不能为空");
+    m_error_reason_must_null = QString::fromUtf8(u8"此处必须为空");
+    m_error_reason_format_not_match = QString::fromUtf8(u8"格式不匹配");
 }
 void ExcelChecker::set_rules(QVector<ExcelFieldRule> &rules)
 {

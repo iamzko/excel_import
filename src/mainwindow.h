@@ -11,6 +11,10 @@
 #include <QSplitter>
 #include <QScopedPointer>
 
+#include "qtsoap.h"
+
+#include "webservice/soapH.h"
+
 #include "config.h"
 #include "excelreader.h"
 #include "excelfieldrule.h"
@@ -30,6 +34,7 @@ public slots:
     void on_pushButtonSearch_clicked();
     void on_pushButtonOpenDir_clicked();
     void on_pushButtonUploadDB_clicked();
+    void on_web_service_resopnse(const QtSoapMessage &res);
 private slots:
     void on_currentChanged(const QModelIndex &current,const QModelIndex &previous);
 
@@ -55,6 +60,9 @@ private:
     QScopedPointer<ExcelReader> m_excel_reader;
     QVector<ExcelFieldRule> m_xinke_rules;
     QVector<ExcelFieldRule> m_public_xinke_rules;
+    struct soap m_web_service;
+
+    QtSoapHttpTransport *m_web_service2;
 
 };
 #endif // MAINWINDOW_H
