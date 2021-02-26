@@ -139,6 +139,10 @@ QMessageBox(QMessageBox::Information,
             }
 
         }
+//        if(!any_err)
+//        {
+//            the_excel_model.setItem(model_i,model_j+1,new QStandardItem(QString::fromUtf8(u8"已导入，未上传")));
+//        }
         if(break_flag)
         {
             break;
@@ -152,7 +156,7 @@ QMessageBox(QMessageBox::Information,
     else
     {
 
-        QMessageBox::about(nullptr,QString::fromUtf8(u8"结果"),QString::fromUtf8(u8"输入文件检查完毕，一共读入[")+QString::number(m_cur_row)+QString::fromUtf8(u8"]行有效数据."));
+        QMessageBox::about(nullptr,QString::fromUtf8(u8"结果"),QString::fromUtf8(u8"输入文件检查完毕，一共读入[")+QString::number(m_cur_row - start_row)+QString::fromUtf8(u8"]行有效数据."));
     }
     return any_err?false:true;
 

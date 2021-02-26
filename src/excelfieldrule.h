@@ -17,6 +17,7 @@ public:
         FORMATED_TRUE,
         FORMATED_FALSE,
     };
+    ExcelFieldRule();
     ExcelFieldRule(QString field_name,
                    FIELD_CONTENT content_state,
                    FIELD_FORMAT format_state,

@@ -10,7 +10,7 @@ CONFIG += c++11
 include(./QtXlsxWriter/src/xlsx/qtxlsx.pri)
 include(./qtsingleapplication/src/qtsingleapplication.pri)
 #include(./qtsoap/src/qtsoap.pri)
-include(./soap/qtsoap.pri)
+#include(./soap/qtsoap.pri)
 #QT      += xlsx
 #设置了RC_FILE，那末RC_ICONS，及以下QMAKE_TARGET_XXXX就失效了
 win32:RC_FILE = myapp.rc
@@ -29,17 +29,10 @@ win32:RC_FILE = myapp.rc
 ##语言
 #RC_LANG = 0x0004
 
-CONFIG(release,debug|releasea):
-{
-#DEFINES += QT_NO_WARNING_OUTPUT
-#DEFINES += QT_NO_DEBUG_OUTPUT
-}
 INCLUDEPATH += src/
 INCLUDEPATH += webservice/
 
 SOURCES += \
-    ExcelFormat/BasicExcel.cpp \
-    ExcelFormat/ExcelFormat.cpp \
     UnitTest/testmainwindow.cpp \
     src/config.cpp \
     src/errortoshow.cpp \
@@ -51,13 +44,12 @@ SOURCES += \
     src/myglobal.cpp \
     src/sheetmodel.cpp \
     src/sheetmodelprivate.cpp \
-    webservice/soapC.cpp \
-    webservice/soapClient.cpp \
-    webservice/stdsoap2.cpp
+    webserviceallin/soapC.cpp \
+    webserviceallin/soapClient.cpp \
+    webserviceallin/stdsoap2.cpp
 
 HEADERS += \
-    ExcelFormat/BasicExcel.hpp \
-    ExcelFormat/ExcelFormat.h \
+    NeoFileClientU/include/NeoFileClientUAPI.h \
     UnitTest/testmainwindow.h \
     src/config.h \
     src/errortoshow.h \
@@ -69,11 +61,26 @@ HEADERS += \
     src/sheetmodel.h \
     src/sheetmodelprivate.h \
     webservice/Service1Soap.nsmap \
-    webservice/soapH.h \
-    webservice/soapStub.h \
-    webservice/stdsoap2.h
+    webserviceallin/MachineWSServiceImplServiceSoapBinding.nsmap \
+    webserviceallin/Service1Soap.nsmap \
+    webserviceallin/soapH.h \
+    webserviceallin/soapStub.h \
+    webserviceallin/stdsoap2.h
 FORMS += \
     mainwindow.ui
+win32{
+}
+CONFIG(release,debug|release)
+{
+LIBS += $$PWD/NeoFileClientU/lib/debug/*.lib
+#DEFINES += QT_NO_WARNING_OUTPUT
+#DEFINES += QT_NO_DEBUG_OUTPUT
+}
+CONFIG(debug,debug|release)
+{
+LIBS += $$PWD/NeoFileClientU/lib/release/*.lib
+}
+
 
 TRANSLATIONS += \
     excel_import_zh_CN.ts

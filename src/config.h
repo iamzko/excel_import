@@ -14,11 +14,13 @@ public:
     QStringList get_excel_header() const;
     QStringList get_upload_header() const;
     QStringList get_check_state_header() const;
+    QString get_db_key() const;
 private:
-    QStringList the_excel_header;
-    QStringList the_upload_header;
-    QStringList the_check_state_header;
-    bool have_read_config_file;
+    QStringList m_the_excel_header;
+    QStringList m_the_upload_header;
+    QStringList m_the_check_state_header;
+    QString m_the_db_key;
+    bool m_have_read_config_file;
 
 };
 

@@ -7,6 +7,7 @@
 class ErrorToShow
 {
 public:
+    ErrorToShow();
     ErrorToShow(int row, int col, QString filed_name, QString standard_format, QString actual_content,QString error_reaseon);
     std::tuple<QString,QString,QString,QString,QString,QString> get_error_content() const
     {
