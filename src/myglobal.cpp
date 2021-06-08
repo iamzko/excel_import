@@ -5,10 +5,12 @@ MyGlobal::MyGlobal()
 
 }
 
-QString MyGlobal::CONFIG_FILE_PATH = QString::fromUtf8(u8"./config.xml");
+const QString MyGlobal::CONFIG_FILE_PATH = QString::fromUtf8(u8"./config.xml");
 
-QString MyGlobal::CONFIG_VERSION = QString::fromUtf8(u8"1.0");
+const QString MyGlobal::CONFIG_VERSION = QString::fromUtf8(u8"1.0");
 
-QString MyGlobal::APP_NAME = QString::fromUtf8(u8"接收登记");
+const QString MyGlobal::APP_NAME = QString::fromUtf8(u8"接收登记");
+const QString MyGlobal::DZ_PREFIX = QString::fromUtf8(u8"dz");
+const QString MyGlobal::XK_PREFIX = QString::fromUtf8(u8"xk");
 
-int MyGlobal::LINE_TYPE = 2;
+const int MyGlobal::LINE_TYPE = 2;

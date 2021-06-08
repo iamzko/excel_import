@@ -42,6 +42,8 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/myglobal.cpp \
+    src/myprocessxmldatathread.cpp \
+    src/myqheaderview.cpp \
     src/sheetmodel.cpp \
     src/sheetmodelprivate.cpp \
     webserviceallin/soapC.cpp \
@@ -58,6 +60,8 @@ HEADERS += \
     src/excelreader.h \
     src/mainwindow.h \
     src/myglobal.h \
+    src/myprocessxmldatathread.h \
+    src/myqheaderview.h \
     src/sheetmodel.h \
     src/sheetmodelprivate.h \
     webservice/Service1Soap.nsmap \
@@ -69,16 +73,14 @@ HEADERS += \
 FORMS += \
     mainwindow.ui
 win32{
+QMAKE_LFLAGS += /MANIFESTUAC:"level='requireAdministrator'"
 }
-CONFIG(release,debug|release)
-{
-LIBS += $$PWD/NeoFileClientU/lib/debug/*.lib
+CONFIG(release,debug|release){
+LIBS += $$PWD/NeoFileClientU/lib/release/*.lib
 #DEFINES += QT_NO_WARNING_OUTPUT
 #DEFINES += QT_NO_DEBUG_OUTPUT
-}
-CONFIG(debug,debug|release)
-{
-LIBS += $$PWD/NeoFileClientU/lib/release/*.lib
+}else{
+LIBS += $$PWD/NeoFileClientU/lib/debug/*.lib
 }
 
 

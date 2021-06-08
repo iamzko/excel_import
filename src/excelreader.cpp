@@ -7,19 +7,19 @@ ExcelReader::ExcelReader()
     ,m_xlsx_file(nullptr)
     ,m_cur_row(0)
     ,m_cur_col(0)
+    ,m_has_checker(false)
 {
 
 
 
 }
 
-bool ExcelReader::read(QStandardItemModel &the_excel_model, QVector<ExcelFieldRule> &read_rules)
+bool ExcelReader::read(QStandardItemModel &the_excel_model)
 {
-    if(m_checker.isNull())
+    if(m_checker.isNull() && !m_has_checker)
         return false;
 
     m_excel_errs.clear();
-    m_checker->set_rules(read_rules);
     auto model_sheet_names = m_xlsx_file->sheetNames();
     if(model_sheet_names.size()>1 || model_sheet_names.size() == 0)
     {
@@ -77,16 +77,17 @@ QMessageBox(QMessageBox::Information,
         return false;
     }
     m_cur_row = start_row;
+    m_cur_col = start_col;
     //处理表头
     QStringList table_header;
     int count =  0;
-    if(model_sheet->dimension().columnCount() - start_col > m_configured_header.size())
+    if(model_sheet->dimension().columnCount() - start_col+1 > m_configured_header.size())
     {
         count = m_configured_header.size();
     }
     else
     {
-        count = model_sheet->dimension().columnCount() - start_col;
+        count = model_sheet->dimension().columnCount() - start_col+1;
     }
     for(int j = start_col; j < count+start_col; ++j)
     {
@@ -117,7 +118,7 @@ QMessageBox(QMessageBox::Information,
         for(m_cur_col = start_col; m_cur_col < count+start_col; ++m_cur_col,++model_j)
         {
             cur_cell = model_sheet->cellAt(m_cur_row,m_cur_col);
-            auto ret = m_checker->check_cell(m_cur_row,m_cur_col-start_col,cur_cell,m_excel_errs);
+            auto ret = m_checker->check_cell(m_cur_row,m_cur_col,m_cur_col-start_col,cur_cell,m_excel_errs);
 
             //处理序号
             if(m_cur_col == start_col && ret == ExcelChecker::CHECK_ERR)
@@ -134,6 +135,26 @@ QMessageBox(QMessageBox::Information,
             if(!any_err)
             {
                 auto temp_str =cur_cell->value().toString();
+                if(m_configured_header[m_cur_col-start_col] == QString::fromUtf8(u8"定价"))
+                {
+                    if(!temp_str.contains(QChar('.')))
+                    {
+                        temp_str.append(QString::fromUtf8(u8".00"));
+                    }
+                    else
+                    {
+                        if(temp_str.mid(temp_str.indexOf(QChar('.')),temp_str.length()).size() < 3)
+                        {
+                            temp_str.append(QString::fromUtf8(u8"0"));
+                        }
+                        else if(temp_str.mid(temp_str.indexOf(QChar('.')),temp_str.length()).size() > 3)
+                        {
+                            temp_str = temp_str.mid(0,temp_str.indexOf(QChar('.'))+2);
+                        }
+                    }
+                    qDebug() << "定价：" << temp_str;
+
+                }
                 temp_item = new QStandardItem(temp_str);
                 the_excel_model.setItem(model_i,model_j,temp_item);
             }
@@ -196,6 +217,11 @@ bool ExcelReader::open(QString &excel_file_path)
     }
 
     m_xlsx_file.reset(new QXlsx::Document(excel_file_path));
+    if(m_xlsx_file.isNull())
+    {
+        QMessageBox::warning(nullptr,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"打开输入文件失败！"));
+        return false;
+    }
     return true;
 }
 
@@ -205,6 +231,10 @@ QVector<ErrorToShow> ExcelReader::get_excel_errs() const
 }
 void ExcelReader::set_checker(ExcelChecker *checker)
 {
+    if(!m_has_checker)
+    {
+        m_has_checker = true;
+    }
     m_checker.reset(checker);
 }
 

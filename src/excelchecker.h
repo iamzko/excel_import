@@ -20,7 +20,7 @@ public:
         CHECK_OK,
         CHECK_ERR,
     };
-    CHECK_RESULT check_cell(int row, int col,QXlsx::Cell *xlsx_cell,QVector<ErrorToShow> &errs);
+    CHECK_RESULT check_cell(int row, int col,int rule_index,QXlsx::Cell *xlsx_cell,QVector<ErrorToShow> &errs);
 
 
 private:

@@ -15,7 +15,7 @@ public:
     ExcelReader();
     void set_checker(ExcelChecker* checker);
     void set_excel_header(QStringList &configured_header);
-    bool read(QStandardItemModel &the_excel_model, QVector<ExcelFieldRule> &read_rules);
+    bool read(QStandardItemModel &the_excel_model);
     bool check_header(QStringList &actual_header);
     bool open(QString &excel_file_path);
     QVector<ErrorToShow> get_excel_errs() const;
@@ -28,6 +28,7 @@ private:
     QVector<ErrorToShow> m_excel_errs;
     int m_cur_row;
     int m_cur_col;
+    bool m_has_checker;
 };
 
 #endif // EXCELREADER_H

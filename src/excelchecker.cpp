@@ -14,14 +14,14 @@ void ExcelChecker::set_rules(QVector<ExcelFieldRule> &rules)
     m_rules = rules;
 }
 
-ExcelChecker::CHECK_RESULT ExcelChecker::check_cell(int row, int col, QXlsx::Cell *xlsx_cell,QVector<ErrorToShow> &errs)
+ExcelChecker::CHECK_RESULT ExcelChecker::check_cell(int row, int col,int rule_index, QXlsx::Cell *xlsx_cell,QVector<ErrorToShow> &errs)
 {
     bool err =false;
     if(col > m_rules.size())
     {
         return ExcelChecker::CELL_ERROR_INVALID_INDEX;
     }
-    const ExcelFieldRule &cur_rule = m_rules[col];
+    const ExcelFieldRule &cur_rule = m_rules[rule_index];
 
     switch (cur_rule.get_content_state())
     {
@@ -46,7 +46,7 @@ ExcelChecker::CHECK_RESULT ExcelChecker::check_cell(int row, int col, QXlsx::Cel
                 case ExcelFieldRule::FORMATED_TRUE:
                     if(!cur_rule.get_format().exactMatch(xlsx_cell->value().toString()))
                     {
-                        errs.append(ErrorToShow(row,col,cur_rule.get_field_name(),cur_rule.get_standard_format(),xlsx_cell->value().toString(),m_error_reason_not_null));
+                        errs.append(ErrorToShow(row,col,cur_rule.get_field_name(),cur_rule.get_standard_format(),xlsx_cell->value().toString(),m_error_reason_format_not_match));
                         err = true;
                     }
                     break;
@@ -58,7 +58,7 @@ ExcelChecker::CHECK_RESULT ExcelChecker::check_cell(int row, int col, QXlsx::Cel
         }
         break;
     case ExcelFieldRule::CONTENT_EMPTY_ALLOWD:
-        if(xlsx_cell != nullptr)
+        if(xlsx_cell != nullptr && !xlsx_cell->value().isNull())
         {
             switch (cur_rule.get_format_state()) {
             case ExcelFieldRule::FORMATED_FALSE:

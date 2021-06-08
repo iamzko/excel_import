@@ -110,7 +110,7 @@ bool Config::make_config_xml(QString &config_file_path)
         element.appendChild(temp_text);
     }
 
-    QDomElement db_key = doc.createElement("database_connection");
+    QDomElement db_key = doc.createElement(u8"database_connection");
     root.appendChild(db_key);
     element = doc.createElement(QString::fromUtf8(u8"ip"));
     temp_text = doc.createTextNode(QString::fromUtf8(u8"192.168.3.61"));
@@ -128,6 +128,9 @@ bool Config::make_config_xml(QString &config_file_path)
     element = doc.createElement(QString::fromUtf8(u8"dbname"));
     element.appendChild(doc.createTextNode(QString::fromUtf8(u8"图书论文2016")));
     db_key.appendChild(element);
+
+    QDomElement server_type = doc.createElement(u8"server_type");
+    server_type.setAttribute(QString::fromUtf8(u8"type"),QString::fromUtf8(u8"1"));
 
 
 
@@ -175,53 +178,93 @@ bool Config::read_config_xml(QString &config_file_path)
     if(config_version == MyGlobal::CONFIG_VERSION)
     {
         QDomNode node,element;
-        node = root.firstChild();
-        node = node.firstChild();
 
+        auto excel_header = root.firstChildElement(QString::fromUtf8(u8"excel_header"));
         m_the_excel_header.clear();
-        while (!node.isNull())
+        if(!excel_header.isNull())
         {
-            m_the_excel_header << node.toElement().text();
-            node = node.nextSiblingElement();
+            node = excel_header.firstChild();
+            while (!node.isNull())
+            {
+                m_the_excel_header << node.toElement().text().trimmed();
+                node = node.nextSiblingElement();
+            }
+
         }
-        node = root.firstChild();
-        node = node.nextSiblingElement();
-        node = node.firstChild();
+        else
+        {
+            return false;
+        }
+        auto upload_header = root.firstChildElement(QString::fromUtf8(u8"upload_header"));
         m_the_upload_header.clear();
-        while(!node.isNull())
+        if(!upload_header.isNull())
         {
-            m_the_upload_header << node.toElement().text();
-            node = node.nextSiblingElement();
+            node = upload_header.firstChild();
+            while(!node.isNull())
+            {
+                m_the_upload_header << node.toElement().text().trimmed();
+                node = node.nextSiblingElement();
+            }
         }
-        node = root.firstChild();
-        node = node.nextSiblingElement();
-        node = node.nextSiblingElement();
-        node = node.firstChild();
-        m_the_check_state_header.clear();
-        while(!node.isNull())
+        else
         {
-            m_the_check_state_header << node.toElement().text();
-            node = node.nextSiblingElement();
+            return false;
+        }
+        auto error_header = root.firstChildElement(QString::fromUtf8(u8"error_header"));
+        m_the_check_state_header.clear();
+        if(!error_header.isNull())
+        {
+            node = error_header.firstChild();
+            while(!node.isNull())
+            {
+                m_the_check_state_header << node.toElement().text().trimmed();
+                node = node.nextSiblingElement();
+            }
+        }
+        else
+        {
+            return false;
         }
 
         auto db_config= root.firstChildElement(QString::fromUtf8(u8"database_connection"));
         if(!db_config.isNull())
         {
             auto db_config_ip = db_config.firstChildElement(QString::fromUtf8(u8"ip"));
-            m_the_db_key.push_back(db_config_ip.text());
+            m_the_db_key.push_back(db_config_ip.text().trimmed());
             m_the_db_key.push_back(u8"@");
             auto db_config_username = db_config.firstChildElement(QString::fromUtf8(u8"username"));
-            m_the_db_key.push_back(db_config_username.text());
+            m_the_db_key.push_back(db_config_username.text().trimmed());
             m_the_db_key.push_back(u8"@");
             auto db_config_password = db_config.firstChildElement(QString::fromUtf8(u8"password"));
-            m_the_db_key.push_back(db_config_password.text());
+            m_the_db_key.push_back(db_config_password.text().trimmed());
             m_the_db_key.push_back(u8"@");
             auto db_config_dbname = db_config.firstChildElement(QString::fromUtf8(u8"dbname"));
-            m_the_db_key.push_back(db_config_dbname.text());
+            m_the_db_key.push_back(db_config_dbname.text().trimmed());
             m_the_db_key.push_back(u8"@");
+            if(m_the_db_key.length() < 8)
+            {
+                qInfo() << QString::fromUtf8(u8"配置文件<database_connection>配置项内容有缺失！");
+                return false;
+            }
         }
         else
         {
+            qInfo() << QString::fromUtf8(u8"配置文件缺少<database_connection>配置项！");
+            return false;
+        }
+        auto server_type = root.firstChildElement(QString::fromUtf8(u8"server_type"));
+        if(!server_type.isNull())
+        {
+            m_the_server_type = server_type.attribute(QString::fromUtf8(u8"type")).trimmed();
+            if(m_the_server_type.isEmpty())
+            {
+                qInfo() << QString::fromUtf8(u8"配置文件<server_type>配置项内容缺失！");
+                return false;
+            }
+        }
+        else
+        {
+            qInfo() << QString::fromUtf8(u8"配置文件缺少<server_type>配置项！");
             return false;
         }
 
@@ -241,6 +284,11 @@ QStringList Config::get_check_state_header() const
 QString Config::get_db_key() const
 {
     return m_the_db_key;
+}
+
+bool Config::get_server_type() const
+{
+    return m_the_server_type == QString::fromUtf8(u8"1")?true:false;
 }
 QStringList Config::get_excel_header() const
 {

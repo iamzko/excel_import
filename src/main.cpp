@@ -6,7 +6,10 @@
 #include <QStandardItemModel>
 #include <QMessageBox>
 #include <QCommandLineOption>
+#include <QMutex>
 #include <qapplication.h>
+#include <QFile>
+#include <QTextStream>
 
 #include "xlsxdocument.h"
 #include "xlsxworksheet.h"
@@ -21,6 +24,8 @@
 
 #include "config.h"
 #include "myglobal.h"
+
+static const QString log_dir = QString::fromUtf8(u8"./log/");
 
 void test_qtxlsx()
 {
@@ -88,26 +93,56 @@ void test_qtxlsx()
 void my_message_output(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QByteArray local_msg = msg.toLocal8Bit();
-    const char *file = context.file?context.file:"./log.txt";
-    const char *function = context.function?context.function:"";
+    QString text;
     switch(type)
     {
     case QtDebugMsg:
-        fprintf(stderr,"Debug: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        text+=QString::fromUtf8(u8"DEBUG:");
         break;
     case QtInfoMsg:
-        fprintf(stderr,"Info: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        text+=QString::fromUtf8(u8"INFO:");
         break;
     case QtWarningMsg:
-        fprintf(stderr,"Warning: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        text+=QString::fromUtf8(u8"WARNING:");
         break;
     case QtCriticalMsg:
-        fprintf(stderr,"Critical: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        text+=QString::fromUtf8(u8"CRITICAL:");
         break;
     case QtFatalMsg:
-        fprintf(stderr,"Fatal: %s (%s:%u, %s)\n",local_msg.constData(), file, context.line, function);
+        text+=QString::fromUtf8(u8"FATAL:");
         break;
 
+    }
+    QString context_info = QString::fromUtf8(u8"FILE[%1:%2]").arg(QString(context.file)).arg(context.line);
+    QString cur_time = QDateTime::currentDateTime().toString("[yyyy/MM/dd hh:mm:ss.zzz]");
+
+
+    if(type == QtInfoMsg )
+    {
+        static QMutex mutex;
+        mutex.lock();
+
+        QString log_content = text + "\t" +cur_time + "\t" + msg;
+
+        QString log_file_path = log_dir + QDate().currentDate().toString("yyyy_MM_dd.log");
+        QDir temp;
+        if(!temp.exists(log_dir))
+        {
+            temp.mkdir(log_dir);
+        }
+        QFile f(log_file_path);
+        f.open(QIODevice::ReadWrite | QIODevice::Append);
+        QTextStream f_stream(&f);
+        f_stream.setCodec(u8"UTF-8");
+        f_stream << log_content << "\r\n";
+        f.flush();
+        f.close();
+        mutex.unlock();
+    }
+    else
+    {
+        QString log_content = text + "\t" +cur_time +"\t"  + context_info + "\t" +msg;
+        fprintf(stderr,"%s\n", log_content.toLocal8Bit().constData());
     }
 
 }
@@ -117,12 +152,29 @@ void test_qt_log()
     qInstallMessageHandler(my_message_output);
 }
 
+bool set_tdmp_reg()
+{
+    QString cur_exe_path = QCoreApplication::applicationFilePath();
+    QSettings reg(u8"HKEY_CLASSES_ROOT\\TDMP",QSettings::NativeFormat);
+    reg.setValue("URL Protocol",cur_exe_path);
+    reg.setValue(".",u8"URL:TDMP Protocol");
+    QString command = QString::fromUtf8(u8"\"%1\" ").arg(cur_exe_path) + QString::fromUtf8(u8"\"%1\"");
+    QSettings reg_command(u8"HKEY_CLASSES_ROOT\\TDMP\\shell\\open\\command",QSettings::NativeFormat);
+    reg_command.setValue(".",command);
+
+    return true;
+
+}
+
 
 int main(int argc, char *argv[])
 {
     //test_qt_log();
     //    QApplication a(argc, argv);
     QtSingleApplication a(argc,argv);
+    qInstallMessageHandler(my_message_output);
+    set_tdmp_reg();
+//    qSetMessagePattern( "[%{time yyyyMMdd h:mm:ss.zzz t} %{if-debug}D%{endif}%{if-info}I%{endif}%{if-warning}W%{endif}%{if-critical}C%{endif}%{if-fatal}F%{endif}] %{file}:%{line} - %{message}" );
 
     if(a.isRunning())
     {
@@ -146,7 +198,7 @@ int main(int argc, char *argv[])
     if(op_parser.isSet(commandline_option_config_str))
     {
         Config temp_config;
-        if(temp_config.make_config_xml(MyGlobal::CONFIG_FILE_PATH))
+        if(temp_config.make_config_xml(const_cast<QString&>(MyGlobal::CONFIG_FILE_PATH)))
         {
             std::cout << "make config successfully!\nPlease check "<< MyGlobal::CONFIG_FILE_PATH.toUtf8().data() << std::endl;
         }

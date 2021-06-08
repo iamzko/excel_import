@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1059</width>
-    <height>604</height>
+    <width>1055</width>
+    <height>595</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,7 +34,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>查询批次号</string>
+           <string>①查询批次号</string>
           </property>
          </widget>
         </item>
@@ -70,7 +70,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>选择输入文件</string>
+           <string>②选择输入文件</string>
           </property>
          </widget>
         </item>
@@ -83,7 +83,20 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>开始导入</string>
+           <string>③开始导入</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="9">
+         <widget class="QPushButton" name="pushButtonShowLog">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>显示日志</string>
           </property>
          </widget>
         </item>
@@ -91,20 +104,14 @@
       </widget>
       <widget class="QWidget" name="layoutWidget">
        <layout class="QGridLayout" name="gridLayout_2">
-        <item row="0" column="1">
-         <widget class="QLabel" name="label">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
+        <item row="0" column="5">
+         <widget class="QPushButton" name="pushButtonTest">
           <property name="text">
-           <string>当前文件夹：</string>
+           <string>测试按钮</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0" colspan="4">
+        <item row="1" column="0" colspan="6">
          <widget class="QTableView" name="tableViewUpload"/>
         </item>
         <item row="0" column="0">
@@ -116,24 +123,33 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>打开文件夹</string>
+           <string>④文件上传</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QPushButton" name="pushButtonBulkBookCommit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>批量篇提交</string>
           </property>
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QLabel" name="labelCurrentDir">
-          <property name="styleSheet">
-           <string notr="true">background-color: rgb(206, 206, 206);</string>
+         <widget class="QPushButton" name="pushButtonBatchCommit">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
           <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <widget class="QPushButton" name="pushButtonTest">
-          <property name="text">
-           <string>测试按钮</string>
+           <string>批提交</string>
           </property>
          </widget>
         </item>
@@ -148,7 +164,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1059</width>
+     <width>1055</width>
      <height>22</height>
     </rect>
    </property>
