@@ -87,10 +87,8 @@ public slots:
     void on_select_all_rows();
 private slots:
     void on_currentChanged(const QModelIndex &current,const QModelIndex &previous);
-    void process_xml_data_to_model(_IN_ QString &xml_data);
     void on_thread_data_finish();
 signals:
-    void process_xml_data(QString &data);
     void press_row(int row);
 
 private:
@@ -109,7 +107,7 @@ private:
                                     _OUT_ QString &file_server_root);
     void reset_data_model();
     void reset_error_show_model();
-    void add_button_to_upload_model();
+    void add_button_and_progressbar_to_upload_model();
     QStringList get_all_file_path(_IN_ file_process_type type, _IN_ QString &dir_name,_OUT_ quint64 total_size, _OUT_ QString &err_msg);
     void write_to_log_dock(_IN_ QString msg);
     QStringList get_all_filename_from_compressed(QString compressed_filepath);
@@ -119,8 +117,8 @@ private:
 private:
     Ui::MainWindow *ui;
     //状态栏显示1
-    QLabel *m_statusbar_label;
-    QLabel *m_statusbar_label_cur_batch_num;
+    QLabel *m_statusbar_label_cur_open_folder;/*状态栏-当前打开文件夹*/
+    QLabel *m_statusbar_label_cur_batch_num;/*状态栏-当前批次号*/
     QMap<QString,QVector<QString>> m_excel_data; /*excel数据*/
     QMap<QString,QString>m_arrival_time_map;
     QStandardItemModel *m_model_excel_data; /*excel内容数据模型*/
