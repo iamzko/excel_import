@@ -34,6 +34,7 @@ INCLUDEPATH += webservice/
 
 SOURCES += \
     UnitTest/testmainwindow.cpp \
+    helpdialog.cpp \
     src/config.cpp \
     src/errortoshow.cpp \
     src/excelchecker.cpp \
@@ -53,6 +54,7 @@ SOURCES += \
 HEADERS += \
     NeoFileClientU/include/NeoFileClientUAPI.h \
     UnitTest/testmainwindow.h \
+    helpdialog.h \
     src/config.h \
     src/errortoshow.h \
     src/excelchecker.h \
@@ -71,6 +73,7 @@ HEADERS += \
     webserviceallin/soapStub.h \
     webserviceallin/stdsoap2.h
 FORMS += \
+    helpdialog.ui \
     mainwindow.ui
 win32{
 QMAKE_LFLAGS += /MANIFESTUAC:"level='requireAdministrator'"

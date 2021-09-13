@@ -6,6 +6,7 @@
 #define _OUT_
 #define _IN_OUT_
 
+#define ERR_MSG_BUFF_LEN 500
 struct book_info
 {
     QString publisher;
@@ -42,6 +43,7 @@ struct book_info
     QString applicablereader;
     QString purpose;
     QString ordersyear;
+    QString usertype;
 };
 
 class MyGlobal
@@ -54,6 +56,7 @@ public:
     static const QString DZ_PREFIX;
     static const QString XK_PREFIX;
     static const int LINE_TYPE;
+    static wchar_t ERR_MSG[ERR_MSG_BUFF_LEN];
 };
 
 #endif // MYGLOBAL_H

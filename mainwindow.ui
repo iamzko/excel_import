@@ -100,6 +100,19 @@
           </property>
          </widget>
         </item>
+        <item row="0" column="8">
+         <widget class="QPushButton" name="pushButtonHelp">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>帮助文档</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="layoutWidget">
@@ -115,7 +128,7 @@
          <widget class="QTableView" name="tableViewUpload"/>
         </item>
         <item row="0" column="0">
-         <widget class="QPushButton" name="pushButtonOpenDir">
+         <widget class="QPushButton" name="pushButtonFileUpload">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -128,7 +141,7 @@
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QPushButton" name="pushButtonBulkBookCommit">
+         <widget class="QPushButton" name="pushButtonBulkBookSubmit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -141,7 +154,7 @@
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QPushButton" name="pushButtonBatchCommit">
+         <widget class="QPushButton" name="pushButtonBatchSubmit">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>

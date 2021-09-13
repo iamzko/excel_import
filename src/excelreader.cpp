@@ -134,29 +134,26 @@ QMessageBox(QMessageBox::Information,
 
             if(!any_err)
             {
-                auto temp_str =cur_cell->value().toString();
-                if(m_configured_header[m_cur_col-start_col] == QString::fromUtf8(u8"定价"))
-                {
-                    if(!temp_str.contains(QChar('.')))
-                    {
-                        temp_str.append(QString::fromUtf8(u8".00"));
-                    }
-                    else
-                    {
-                        if(temp_str.mid(temp_str.indexOf(QChar('.')),temp_str.length()).size() < 3)
-                        {
-                            temp_str.append(QString::fromUtf8(u8"0"));
+                if (cur_cell != nullptr) {
+                    auto temp_str = cur_cell->value().toString();
+                    if (m_configured_header[m_cur_col - start_col] == QString::fromUtf8(u8"定价")) {
+                        if (!temp_str.contains(QChar('.'))) {
+                            temp_str.append(QString::fromUtf8(u8".00"));
+                        } else {
+                            if (temp_str.mid(temp_str.indexOf(QChar('.')), temp_str.length()).size() < 3) {
+                                temp_str.append(QString::fromUtf8(u8"0"));
+                            } else if (temp_str.mid(temp_str.indexOf(QChar('.')), temp_str.length()).size() > 3) {
+                                temp_str = temp_str.mid(0, temp_str.indexOf(QChar('.')) + 2);
+                            }
                         }
-                        else if(temp_str.mid(temp_str.indexOf(QChar('.')),temp_str.length()).size() > 3)
-                        {
-                            temp_str = temp_str.mid(0,temp_str.indexOf(QChar('.'))+2);
-                        }
+                        qDebug() << "定价：" << temp_str;
                     }
-                    qDebug() << "定价：" << temp_str;
+                    temp_item = new QStandardItem(temp_str);
+                    the_excel_model.setItem(model_i, model_j, temp_item);
 
+                } else {
+                    the_excel_model.setItem(model_i, model_j, new QStandardItem(QString("")));
                 }
-                temp_item = new QStandardItem(temp_str);
-                the_excel_model.setItem(model_i,model_j,temp_item);
             }
 
         }

@@ -12,5 +12,6 @@ const QString MyGlobal::CONFIG_VERSION = QString::fromUtf8(u8"1.0");
 const QString MyGlobal::APP_NAME = QString::fromUtf8(u8"接收登记");
 const QString MyGlobal::DZ_PREFIX = QString::fromUtf8(u8"dz");
 const QString MyGlobal::XK_PREFIX = QString::fromUtf8(u8"xk");
+wchar_t MyGlobal::ERR_MSG[ERR_MSG_BUFF_LEN] = { 0 };
 
 const int MyGlobal::LINE_TYPE = 2;

@@ -1,0 +1,12 @@
+		<ip>
+			192.168.3.61
+		</ip>
+		<username>
+			ts_tools_jsdj
+		</username>
+		<password>
+			ts2016_new
+		</password>
+		<dbname>
+			Í¼ÊéÂÛÎÄ2016
+		</dbname>

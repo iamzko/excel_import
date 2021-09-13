@@ -154,7 +154,7 @@ void test_qt_log()
 
 bool set_tdmp_reg()
 {
-    QString cur_exe_path = QCoreApplication::applicationFilePath();
+    QString cur_exe_path = QCoreApplication::applicationFilePath().replace("/", "\\");
     QSettings reg(u8"HKEY_CLASSES_ROOT\\TDMP",QSettings::NativeFormat);
     reg.setValue("URL Protocol",cur_exe_path);
     reg.setValue(".",u8"URL:TDMP Protocol");
@@ -189,14 +189,12 @@ int main(int argc, char *argv[])
     op_parser.addOption(op_make_config);
     QCommandLineOption op_help = op_parser.addHelpOption();
     op_parser.process(a);
+    bool should_set_batch_bum = false;
     if(op_parser.isSet(op_help))
     {
         op_parser.showHelp();
         return EXIT_SUCCESS;
-    }
-
-    if(op_parser.isSet(commandline_option_config_str))
-    {
+    } else if (op_parser.isSet(commandline_option_config_str)) {
         Config temp_config;
         if(temp_config.make_config_xml(const_cast<QString&>(MyGlobal::CONFIG_FILE_PATH)))
         {
@@ -207,12 +205,23 @@ int main(int argc, char *argv[])
             std::cout << "make config failed!" << std::endl;
         }
 
-
+    } else {
+        if (argc > 1) {
+            should_set_batch_bum = true;
+        }
     }
-    MainWindow w;
+    MainWindow w(should_set_batch_bum);
     w.setWindowTitle(MyGlobal::APP_NAME);
     w.setWindowIcon(QIcon(":/Icon/Resource/title.ico"));
     w.show();
+    if (should_set_batch_bum) {
+        w.setCommandline_invoke(should_set_batch_bum);
+        auto tdmp_str = QString(argv[1]);
+        QRegExp r_batch_num("tdmp://(.*)/");
+        if (r_batch_num.indexIn(tdmp_str) != -1) {
+            w.set_batch_num(r_batch_num.cap(1));
+        }
+    }
 
     //    test_excelformat();
     //    test_qtxlsx();

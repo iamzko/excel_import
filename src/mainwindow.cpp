@@ -1,22 +1,22 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QFileDialog>
-#include <QTableView>
-#include <QMessageBox>
-#include <QDebug>
-#include <QColor>
-#include <QtXml/QtXml>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QJsonDocument>
-#include <QPushButton>
-#include <QMouseEvent>
 #include <QCheckBox>
-#include <QStylePainter>
-#include <QtConcurrent/QtConcurrentRun>
-#include <QProgressDialog>
+#include <QColor>
+#include <QDebug>
+#include <QFileDialog>
+#include <QJsonDocument>
+#include <QMessageBox>
+#include <QMouseEvent>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QProgressBar>
+#include <QProgressDialog>
+#include <QPushButton>
+#include <QStylePainter>
+#include <QTableView>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QtXml/QtXml>
 
 #include <string>
 #include <iostream>
@@ -27,22 +27,20 @@
 
 #include "webserviceallin/Service1Soap.nsmap"
 
-
-
-
-#include "xlsxdocument.h"
-#include "sheetmodel.h"
 #include "myglobal.h"
 #include "myqheaderview.h"
+#include "sheetmodel.h"
+#include "xlsxdocument.h"
 
-
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(bool command_line, QWidget* parent)
     : QMainWindow(parent)
-    ,ui(new Ui::MainWindow)
-    ,m_excel_reader(new ExcelReader)
-    ,m_cur_tabview_state(tableview_show_type::SHOW_NULL)
-    ,m_file_transports(nullptr)
-    ,m_select_all_button_state(false)
+    , ui(new Ui::MainWindow)
+    , m_excel_reader(new ExcelReader)
+    , m_cur_tabview_state(tableview_show_type::SHOW_NULL)
+    , m_file_transports(nullptr)
+    , m_select_all_button_state(false)
+    , m_commandline_invoke(command_line)
+    , m_help_dialog(nullptr)
 {
     ui->setupUi(this);
     ui->pushButtonTest->hide();
@@ -55,9 +53,14 @@ MainWindow::MainWindow(QWidget *parent)
     m_timer_watch_err_msg.start(1000);
     //生成xml配置文件
     //    m_config.make_config_xml(MyGlobal::the_config_file_path);
-
-    if(!m_config.read_config_xml(const_cast<QString&>(MyGlobal::CONFIG_FILE_PATH)))
-    {
+    QString config_path;
+    if (m_commandline_invoke) {
+        config_path = QCoreApplication::applicationDirPath() + u8"/config.xml";
+    } else {
+        config_path = MyGlobal::CONFIG_FILE_PATH;
+    }
+    qDebug() << config_path;
+    if (!m_config.read_config_xml(config_path)) {
         QMessageBox::critical(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"读取配置文件失败，请检查配置文件！"));
         exit(EXIT_FAILURE);
     }
@@ -73,9 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
     setDockNestingEnabled(true);
     //    m_log_dock->setFeatures(QDockWidget::DockWidgetVerticalTitleBar);
 
-    addDockWidget(Qt::RightDockWidgetArea,m_log_dock.get());
-
-
+    addDockWidget(Qt::RightDockWidgetArea, m_log_dock.get());
 
     m_excel_header = m_config.get_excel_header();
     m_upload_header = m_config.get_upload_header();
@@ -174,11 +175,20 @@ MainWindow::MainWindow(QWidget *parent)
     }
 }
 
+void MainWindow::set_batch_num(QString batch_num)
+{
+    ui->lineEditBatchNum->setText(batch_num);
+    m_cur_batch_number = batch_num;
+}
+
 MainWindow::~MainWindow()
 {
     if(m_file_transports)
     {
         CTransmitFile::DestroyInstance(m_file_transports);
+    }
+    if (m_help_dialog) {
+        delete m_help_dialog;
     }
     delete ui;
 }
@@ -320,7 +330,10 @@ void MainWindow::on_pushButtonSearch_clicked()
                                                    著作类型	as booktype,
                                                    适用读者	as applicablereader,
                                                    用途   	as purpose,
-                                                   订单年  	as ordersyear from dbo.V_接收登记_详细信息  where 批次号 = '%1')")).arg(ui->lineEditBatchNum->text());
+                                                   订单年  	as ordersyear,
+                                                   用户类型      as usertype
+                                                   from dbo.V_接收登记_详细信息  where 批次号 = '%1')"))
+                      .arg(ui->lineEditBatchNum->text());
     qDebug() << sql_content;
     ret = soap_call_SER__executeSql(&m_web_service, NULL, NULL, web_info, sql_content.toStdWString(), web_result);
     //    int ret = soap_call_SER__executeSql(&m_web_service, "http://192.168.1.200:81/WebServiceDemo/Service1.asmx", NULL, web_info, sql_content.toStdWString(), web_result);
@@ -526,27 +539,8 @@ void MainWindow::on_thread_data_finish()
         m_model_excel_data->setItem(i,model_col++,new QStandardItem(book.purpose));
         model_col += 3;
         m_model_excel_data->setItem(i,model_col++,new QStandardItem(book.ordersyear));
-//        if(book.processstate == QString::fromUtf8(u8"已处理"))
-//        {
-//            m_model_excel_data->setItem(i,model_col++,new QStandardItem(QString::fromUtf8(u8"已提交")));
-//            /*            if (v == BookState.Imported)
-//                return "已导入,未上传";
-//            else if (v == BookState.Uploaded)
-//                return "已上传,未提交";
-//            else if (v == BookState.Submited)
-//                return "已提交";
-//            else
-//                return null;*/
-//        }
-//        else if(book.filestate == QString::fromUtf8(u8"True"))
-//        {
-//            m_model_excel_data->setItem(i,model_col++,new QStandardItem(QString::fromUtf8(u8"已上传,未提交")));
-//        }
-//        else
-//        {
-//            m_model_excel_data->setItem(i,model_col++,new QStandardItem(QString::fromUtf8(u8"已导入,未上传")));
-//        }
-
+        m_model_excel_data->setItem(i, model_col++, new QStandardItem(book.usertype));
+        //上传状态表格
         model_col = 0;
         m_model_upload_data->setItem(i,model_col++,new QStandardItem(QString::number(i+1)));
         m_model_upload_data->setItem(i,model_col++,new QStandardItem(book.serialnum));
@@ -804,14 +798,11 @@ QStringList MainWindow::get_all_file_path(file_process_type type,QString &dir_na
         }
         if(file_suffix.toLower() == QString::fromUtf8(u8"zip") || file_suffix.toLower() == QString::fromUtf8(u8"rar"))
         {
-            //处理压缩文件，从zip和rar中拿出文件名
-            //目前没有好的方法处理压缩文件
-            //TODO 处理压缩文件
             //QStringList file_names_in_compress = get_name_from_compress(file_info.fullname);
             switch(type) {
             case file_process_type::PROC_SPECIAL:
             {
-#if 0
+#if 0 //暂不支持压缩文件的处理
                 auto compressed_filepath = file_info.absoluteFilePath();
                 auto filenames_in_compressed = get_all_filename_from_compressed(compressed_filepath);
                 if(!filenames_in_compressed.isEmpty())
@@ -912,7 +903,7 @@ void MainWindow::write_to_log_dock(QString msg)
     QString content = QString::fromUtf8(u8"%1:%2").arg(time.time().toString()).arg(msg);
     auto temp = dynamic_cast<QTextEdit*>(m_log_dock->widget());
     temp->append(content);
-    QTextDocument doc;
+    QTextDocument doc; //利用qtextdocument清洗html标记
     doc.setHtml(msg);
     qInfo() << doc.toPlainText();
     //    m_log_edit->append(content);
@@ -930,27 +921,17 @@ QStringList MainWindow::get_all_filename_from_compressed(QString compressed_file
     p.waitForStarted();
     p.waitForFinished();
     auto cmd_out = QString::fromLocal8Bit(p.readAllStandardOutput());
-    //    qDebug()<< cmd_out;
     auto cmd_out_lines = cmd_out.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
-    foreach(auto line,cmd_out_lines)
-    {
-        //        qDebug() << line;
-    }
     auto main_body = cmd_out_lines.filter(QRegExp(".* .* [^ ]{5} \\d* \\d* .*"));
-    //    qDebug() << "main_body:";
     foreach(auto line,main_body)
     {
         if(line.indexOf(QString::fromUtf8(u8"....A")) != -1)
         {
-            //            qDebug() << line;
             line.remove(0,line.lastIndexOf(" ")+1);
-            //            qDebug() << "after process: " << line;
             line.remove(0,line.lastIndexOf("\\")+1);
-            //            qDebug() << "file name: " << line;
             result.push_back(line);
         }
     }
-    //    qDebug()<<QString::fromLocal8Bit(p.readAllStandardError());
     return result;
 }
 
@@ -980,8 +961,8 @@ void MainWindow::init_excel_checker()
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
-        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"YYYYmmdd"),QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
-        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"YYYYmmdd"),QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYYmmdd"), QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYYmmdd"), QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
@@ -993,10 +974,8 @@ void MainWindow::init_excel_checker()
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"只能为是或否"),QString::fromUtf8(u8"(\u662f|\u5426)")));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"只能为是或否"),QString::fromUtf8(u8"(\u662f|\u5426)")));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"YYYY"),QString::fromUtf8(u8"\\d{4}$")));
-    }
-//    else if(m_cur_batch_number.toLower().startsWith(MyGlobal::DZ_PREFIX))
-    else
-    {
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+    } else if (m_cur_batch_number.toLower().startsWith(MyGlobal::DZ_PREFIX)) {
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"必须为数字"),QString::fromUtf8(u8"\\d*")));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
@@ -1030,12 +1009,46 @@ void MainWindow::init_excel_checker()
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_FALSE));
         excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++),ExcelFieldRule::CONTENT_EMPTY_ALLOWD,ExcelFieldRule::FORMATED_TRUE,QString::fromUtf8(u8"YYYY"),QString::fromUtf8(u8"\\d{4}$")));
-
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+    } else {
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"必须为数字"), QString::fromUtf8(u8"\\d*")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYYmm"), QString::fromUtf8(u8"\\d{4}(0|1)\\d")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"只能为两位小数的数字"), QString::fromUtf8(u8"\\d*\\.?\\d\\d$")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYYmmdd"), QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYYmmdd"), QString::fromUtf8(u8"\\d{4}(0|1)\\d\\d\\d")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_NOT_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_TRUE, QString::fromUtf8(u8"YYYY"), QString::fromUtf8(u8"\\d{4}$")));
+        excel_check_rules.push_back(ExcelFieldRule(m_excel_header.at(i++), ExcelFieldRule::CONTENT_EMPTY_ALLOWD, ExcelFieldRule::FORMATED_FALSE));
     }
-    ExcelChecker *temp_checker = new ExcelChecker();
+    ExcelChecker* temp_checker = new ExcelChecker();
     temp_checker->set_rules(excel_check_rules);
     m_excel_reader->set_checker(temp_checker);
-
 }
 
 bool MainWindow::get_data_from_db_to_upload_data()
@@ -1091,9 +1104,8 @@ bool MainWindow::get_data_from_db_to_upload_data()
                 }
                 add_button_and_progressbar_to_upload_model();
                 ui->tableViewUpload->resizeColumnsToContents();
-                if(row == 0)
-                {
-                    QMessageBox::warning(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"批次[%1]没有需要上传文件的图书。").arg(m_cur_batch_number));
+                if (row == 0) {
+                    //                    QMessageBox::warning(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"批次[%1]没有需要上传文件的图书。").arg(m_cur_batch_number));
                     return false;
                 }
             }
@@ -1101,7 +1113,7 @@ bool MainWindow::get_data_from_db_to_upload_data()
     }
     else
     {
-        QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"连接服务器失败，请稍后再试。"));
+        //        QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"连接服务器失败，请稍后再试。"));
         write_to_log_dock(QString::fromUtf8(u8"查询需要上传或者提交的记录失败，原因：<b>%1</b>。").arg(web_ret));
         return false;
 
@@ -1109,12 +1121,74 @@ bool MainWindow::get_data_from_db_to_upload_data()
     return true;
 }
 
+bool MainWindow::get_if_need_special_process(bool& need)
+{
+    QString sql_content = QString::fromUtf8(u8"select 接收类型 as recvtype, 制作方式 as productionmethod from TS_接收登记表 where 批次号='%1'").arg(m_cur_batch_number);
+    std::wstring web_ret;
+    int ret = soap_call_SER__executeSql(&m_web_service, NULL, NULL, m_db_key.toStdWString(), sql_content.toStdWString(), web_ret);
+    if (ret == SOAP_OK) {
+        qDebug() << "execute ser webservice successfully!";
+        QString ret_data;
+        ret = check_web_service_query_result(web_ret, ret_data, web_service_type::SER_SQL_QUERY);
+        if (ret != -1) {
+            if (ret == 0) {
+                //QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"查询到%1条记录。").arg(ret));
+                write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span>]不需要特殊处理。").arg(m_cur_batch_number));
+            } else {
+                qDebug() << "there are " << ret << " records.";
+                qDebug() << "the xml data is: " << ret_data;
+                QDomDocument doc;
+                doc.setContent(ret_data);
+                auto node = doc.firstChild();
+                auto xml_content = node.firstChildElement(QString::fromUtf8(u8"a"));
+                auto recv_type = xml_content.firstChildElement(QString::fromUtf8(u8"recvtype")).text();
+                auto production_method = xml_content.firstChildElement(QString::fromUtf8(u8"productionmethod")).text();
+                if (recv_type == QString::fromUtf8(u8"刊")) {
+                    QMessageBox::warning(this, QString::fromUtf8(u8"警告"), QString::fromUtf8(u8"不支持刊制作方式！"));
+                    return false;
+                }
+                if (recv_type == QString::fromUtf8(u8"盘") && production_method == QString::fromUtf8(u8"纯刊")) {
+                    qDebug() << m_cur_batch_number << " need special process!";
+                    write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span>]需要特殊处理。").arg(m_cur_batch_number));
+                    need = true;
+                }
+            }
+        }
+    } else {
+        QMessageBox::warning(this, QString::fromUtf8(u8"警告"), QString::fromUtf8(u8"连接服务器失败，请稍后再试。").arg(ret));
+        write_to_log_dock(QString::fromUtf8(u8"查询[TS_接收登记表]是否特殊处理失败，原因：<b>%1</b>。").arg(web_ret));
+        return false;
+    }
+    return true;
+}
+
+bool MainWindow::get_server_list(QString& id, QString& ip, QString& port, QString& dir_root)
+{
+    MAC__GetLineServerList server_info;
+    server_info.outUse = m_config.get_server_type();
+    MAC__GetLineServerListResponse web_result;
+    int ret = soap_call___MAC__GetLineServerList(&m_web_service, NULL, NULL, &server_info, web_result);
+    if (ret == SOAP_OK) {
+        qDebug() << "execute mac webservice successfully!";
+        //        qDebug() << QString::fromStdWString(std::wstring(web_result.return_));
+        auto json_data = QString::fromStdWString(std::wstring(web_result.return_));
+        process_json_data_from_web(json_data, id, ip, port, dir_root);
+        qDebug() << "-->get all:" << id << ";" << ip << ";" << port << ";" << dir_root;
+    } else {
+        qDebug() << QString::fromUtf8(u8"execute mac webservice failed,code[%1]!").arg(ret);
+        qDebug() << QString::fromStdWString(std::wstring(web_result.return_));
+        write_to_log_dock(QString::fromUtf8(u8"调用getlineserverlist服务失败，原因：[<b>%1</b>]").arg(QString::fromStdWString(std::wstring(web_result.return_))));
+        return false;
+    }
+    return true;
+}
+
 void MainWindow::lock_all_input(bool is_lock)
 {
-    ui->pushButtonBatchCommit->setEnabled(!is_lock);
-    ui->pushButtonBulkBookCommit->setEnabled(!is_lock);
+    ui->pushButtonBatchSubmit->setEnabled(!is_lock);
+    ui->pushButtonBulkBookSubmit->setEnabled(!is_lock);
     ui->pushButtonChooseFile->setEnabled(!is_lock);
-    ui->pushButtonOpenDir->setEnabled(!is_lock);
+    ui->pushButtonFileUpload->setEnabled(!is_lock);
     ui->pushButtonSearch->setEnabled(!is_lock);
     ui->pushButtonUploadDB->setEnabled(!is_lock);
     ui->lineEditBatchNum->setEnabled(!is_lock);
@@ -1124,7 +1198,7 @@ void MainWindow::lock_all_input(bool is_lock)
     }
 }
 
-void MainWindow::on_pushButtonOpenDir_clicked()
+void MainWindow::on_pushButtonFileUpload_clicked()
 {
     if(m_cur_batch_number.isEmpty())
     {
@@ -1134,8 +1208,8 @@ void MainWindow::on_pushButtonOpenDir_clicked()
 
     if(get_data_from_db_to_upload_data())
     {
-        if(m_model_upload_data->rowCount() == 0)
-        {
+        if (m_model_upload_data->rowCount() == 0) {
+            QMessageBox::warning(this, QString::fromUtf8(u8"警告"), QString::fromUtf8(u8"没有需要上传文件的图书！"));
             return;
         }
         m_cur_open_dir = QFileDialog::getExistingDirectory(this,QString::fromUtf8(u8"选择上传文件夹"),QString::fromUtf8(u8"./"));
@@ -1146,90 +1220,27 @@ void MainWindow::on_pushButtonOpenDir_clicked()
         //    ui->labelCurrentDir->setText(m_cur_open_dir);
         //    ui->statusbar->showMessage(QString::fromUtf8(u8"打开文件夹[%1]").arg(m_cur_open_dir),5000);
         m_statusbar_label_cur_open_folder->setText(QString::fromUtf8(u8"当前打开文件夹：[%1]").arg(m_cur_open_dir));
-        write_to_log_dock(QString::fromUtf8(u8"打开文件夹夹[<span style=\"color:#F00\">%1</span>]").arg(m_cur_open_dir));
+        write_to_log_dock(QString::fromUtf8(u8"打开文件夹[<span style=\"color:#F00\">%1</span>]").arg(m_cur_open_dir));
         QString server_id;
         QString file_server_ip;
         QString file_server_port;
         QString file_server_root;
-        MAC__GetLineServerList server_info;
-        server_info.outUse = m_config.get_server_type();
-        MAC__GetLineServerListResponse web_result;
-        int ret = soap_call___MAC__GetLineServerList(&m_web_service,NULL,NULL,&server_info,web_result);
-        if(ret == SOAP_OK)
-        {
-            qDebug() << "execute mac webservice successfully!";
-            //        qDebug() << QString::fromStdWString(std::wstring(web_result.return_));
-            auto json_data = QString::fromStdWString(std::wstring(web_result.return_));
-            process_json_data_from_web(json_data,server_id,file_server_ip,file_server_port,file_server_root);
-            qDebug() << "-->get all:" << server_id << ";" << file_server_ip << ";" << file_server_port << ";" << file_server_root;
-        }
-        else
-        {
-            qDebug() << QString::fromUtf8(u8"execute mac webservice failed,code[%1]!").arg(ret);
-            qDebug() << QString::fromStdWString(std::wstring(web_result.return_));
-            write_to_log_dock(QString::fromUtf8(u8"调用getlineserverlist服务失败，原因：[<b>%1</b>]").arg(QString::fromStdWString(std::wstring(web_result.return_))));
+        bool b_ret = get_server_list(server_id, file_server_ip, file_server_port, file_server_root);
+        if (!b_ret) {
+            return;
         }
         //判读是否需要特殊处理,接收方式为盘,制作方式为刊时认为是特殊处理;接收方式为刊时，工具不支持;接收方式为盘，制作方式为盘时为普通处理;
         bool need_special_process = false;
-        QString sql_content = QString::fromUtf8(u8"select 接收类型 as recvtype, 制作方式 as productionmethod from TS_接收登记表 where 批次号='%1'").arg(m_cur_batch_number);
-        std::wstring web_ret;
-        ret = soap_call_SER__executeSql(&m_web_service,NULL,NULL,m_db_key.toStdWString(),sql_content.toStdWString(),web_ret);
-        if(ret == SOAP_OK)
-        {
-            qDebug() << "execute ser webservice successfully!";
-            QString ret_data;
-            ret = check_web_service_query_result(web_ret,ret_data,web_service_type::SER_SQL_QUERY);
-            if(ret != -1)
-            {
-                if(ret  == 0)
-                {
-                    //QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"查询到%1条记录。").arg(ret));
-                    write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span>]不需要特殊处理。").arg(m_cur_batch_number));
-                }
-                else
-                {
-                    qDebug() << "there are " << ret << " records.";
-                    qDebug() << "the xml data is: " << ret_data;
-                    QDomDocument doc;
-                    doc.setContent(ret_data);
-                    auto node = doc.firstChild();
-                    auto xml_content = node.firstChildElement(QString::fromUtf8(u8"a"));
-                    auto recv_type = xml_content.firstChildElement(QString::fromUtf8(u8"recvtype")).text();
-                    auto production_method = xml_content.firstChildElement(QString::fromUtf8(u8"productionmethod")).text();
-                    if(recv_type == QString::fromUtf8(u8"刊"))
-                    {
-                        QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"不支持刊制作方式！"));
-                        return;
-
-                    }
-                    if(recv_type == QString::fromUtf8(u8"盘") && production_method == QString::fromUtf8(u8"纯刊"))
-                    {
-                        qDebug() << m_cur_batch_number << " need special process!";
-                        write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span>]需要特殊处理。").arg(m_cur_batch_number));
-                        need_special_process = true;
-                    }
-                }
-            }
-        }
-        else
-        {
-            QMessageBox::warning(this,QString::fromUtf8(u8"警告"),QString::fromUtf8(u8"连接服务器失败，请稍后再试。").arg(ret));
-            write_to_log_dock(QString::fromUtf8(u8"查询[TS_接收登记表]是否特殊处理失败，原因：<b>%1</b>。").arg(web_ret));
+        b_ret = get_if_need_special_process(need_special_process);
+        if (!b_ret) {
             return;
-
         }
+
         //冻结所有输入
         lock_all_input(true);
 
-        //            std::wstring web_ret;
-        //            int ret;
         bool any_err = false;
         QString err_msg;
-//        QProgressDialog progress_upload(this);
-//        progress_upload.setWindowModality(Qt::WindowModal);
-//        progress_upload.setWindowTitle(QString::fromUtf8(u8"文件上传中..."));
-//        progress_upload.setCancelButtonText(QString::fromUtf8(u8"取消也不会停"));
-//        progress_upload.show();
 
 
         for(int row = 0; row < m_model_upload_data->rowCount(); ++row)
@@ -1237,7 +1248,6 @@ void MainWindow::on_pushButtonOpenDir_clicked()
             QString folder_name;
             auto cur_code = m_model_upload_data->item(row,1)->text();
             auto cur_progressbar  = qobject_cast<QProgressBar*>(ui->tableViewUpload->indexWidget(m_model_upload_data->index(row,m_model_upload_data->columnCount()-2)));
-//            progress_upload.setLabelText(QString::fromUtf8(u8"正在传输\t") + folder_name);
             if(cur_code.isEmpty())
             {
                 QMessageBox::critical(this,QString::fromUtf8(u8"错误"),QString::fromUtf8(u8"序号[%1]编号为空！").arg(m_model_upload_data->item(row,0)->text()));
@@ -1245,10 +1255,7 @@ void MainWindow::on_pushButtonOpenDir_clicked()
             }
             if(m_model_upload_data->item(row,5)->text() == QString::fromUtf8(u8"是"))
             {
-//                cur_progressbar->setRange(0,1);
-//                cur_progressbar->setValue(1);
                 write_to_log_dock(QString::fromUtf8(u8"[%1]已经上传过文件，自动忽略。").arg(cur_code));
-//                m_model_upload_data->item(row,5)->setBackground(QBrush(QColor(0,255,0)));
                 continue;
             }
             if(!m_model_upload_data->item(row,3)->text().isEmpty())
@@ -1271,18 +1278,18 @@ void MainWindow::on_pushButtonOpenDir_clicked()
             {
                 QString store_proc_del = QString::fromUtf8("@cPost#%1#VarChar#in#$@cSN#%2#VarChar#in#$@dtRechTime#%3#VarChar#in#$@fileDirection#%4#VarChar#in#$@nRet##int#out#$@cError##VarChar#out#$")
                                              .arg(QString::fromUtf8(u8"接收登记"))
-                                             .arg(m_model_upload_data->item(row,1)->text())
-                                             .arg(m_arrival_time_map[m_model_upload_data->item(row,1)->text()])
+                                             .arg(m_model_upload_data->item(row, 1)->text())
+                                             .arg(m_arrival_time_map[m_model_upload_data->item(row, 1)->text()])
                                              .arg(QString::fromUtf8(u8"输出"));
-                web_ret.clear();
+                std::wstring web_ret;
                 //            ret = soap_call_SER__executeStorageProcess(&m_web_service,NULL,NULL,m_db_key.toStdWString(),QString::fromUtf8(u8"").toStdWString(),store_proc_del.toStdWString(),web_ret);
-                ret = soap_call_SER__executeStorageProcess(&m_web_service,
-                                                           NULL,
-                                                           NULL,
-                                                           m_db_key.toStdWString(),
-                                                           QString::fromUtf8(u8"Proc_文件_DeleteFile").toStdWString(),
-                                                           store_proc_del.toStdWString(),
-                                                           web_ret);
+                int ret = soap_call_SER__executeStorageProcess(&m_web_service,
+                    NULL,
+                    NULL,
+                    m_db_key.toStdWString(),
+                    QString::fromUtf8(u8"Proc_文件_DeleteFile").toStdWString(),
+                    store_proc_del.toStdWString(),
+                    web_ret);
                 if (ret == SOAP_OK)
                 {
                     QString ret_data;
@@ -1331,6 +1338,7 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                     //开始文件上传
                     bool server_ret;
                     QFuture<int> future_connect_server= QtConcurrent::run([&](){return m_file_transports->ConnectServer(file_server_ip.toStdWString().c_str(),file_server_port.toInt(),1);});
+                    //显示一个窗口等待完成文件夹服务器连接
                     QMessageBox temp_wait_connection(this);
                     QString temp_text = QString::fromUtf8(u8"正在连接文件服务器...");
                     temp_wait_connection.setText(temp_text);
@@ -1340,7 +1348,7 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                     temp_wait_connection.addButton(QMessageBox::Ok);
                     temp_wait_connection.button(QMessageBox::Ok)->hide();
                     temp_wait_connection.show();
-                    QTime s_time,s_time_1;
+                    QElapsedTimer s_time, s_time_1;
                     s_time.start();
                     s_time_1.start();
                     while(future_connect_server.isRunning())
@@ -1359,7 +1367,8 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                         qApp->processEvents();
                     }
                     temp_wait_connection.hide();
-//                    progress_upload.show();
+
+                    //                    progress_upload.show();
                     if(!future_connect_server.isCanceled())
                     {
                         server_ret = future_connect_server.result();
@@ -1425,6 +1434,8 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                         else
                         {
                             sub_path = temp_path_parts.last().right(temp_path_parts.last().size()-1);
+                            //文件服务器的路径必须都是"\",不能出现/，不然就会返回错误
+                            sub_path.replace("/", "\\");
                             final_remote_path = server_file_path + sub_path + QString::fromUtf8(u8"\\");
                         }
                         qDebug() << "^^^^final remote path: " << final_remote_path;
@@ -1465,45 +1476,6 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                                                                        QString::fromUtf8(u8"Proc_文件_InsertOneFile").toStdWString(),
                                                                        store_proc_update.toStdWString(),
                                                                        web_ret);
-#if 0
-                           //service test
-                            QString update_sql = QString::fromUtf8(u8"EXEC	[dbo].[Proc_文件_InsertOneFile_V1] \
-                                                            @cPost = N'%1', \
-                                                            @cSN = N'%2', \
-                                                            @dtRechTime = N'%3',\
-                                                            @cFileName = N'%4',\
-                                                            @dwSize = %5,\
-                                                            @cMTime = N'%6',\
-                                                            @cPath = N'%7,\
-                                                            @cRelateDir = N'%8',\
-                                                            @fileDirection = N'%9',\
-                                                            @cExt = N'%10',\
-                                                            @serverId = %11,\
-                                                            @cArtSN = N'%12',\
-                                                            @nRet = @nRet OUTPUT,\
-                                                            @cError = @cError OUTPUT")
-                                                            .arg(QString::fromUtf8(u8"接收登记"))
-                                                            .arg(cur_code)
-                                                            .arg(m_arrival_time_map[cur_code])
-                                                            .arg(QString::fromUtf8(u8"\u00d6"))
-                                                            .arg(temp_dir.size())
-                                                            .arg(temp_dir.lastModified().toString("yyyy-MM-dd HH:mm:ss"))
-                                                            .arg(final_remote_path.split(file_server_root).last())
-                                                            .arg(sub_path)
-                                                            .arg(QString::fromUtf8(u8"输出"))
-                                                            .arg(temp_dir.suffix().toLower())
-                                                            .arg(server_id)
-                                                            .arg(cur_code);
-                            qDebug() << "updata_sql:" << update_sql;
-                            qInfo() << update_sql;
-
-                            ret = soap_call_SER__executeSql(&m_web_service,
-                                                                         NULL,
-                                                                         NULL,
-                                                                         m_db_key.toStdWString(),
-                                                                         update_sql.toStdWString(),
-                                                                         web_ret);
-#endif
                             if (ret == SOAP_OK)
                             {
 
@@ -1538,14 +1510,16 @@ void MainWindow::on_pushButtonOpenDir_clicked()
                                 this->m_err_msg.push_back(QString::fromUtf8(u8"[Proc_文件_InsertOneFile]服务器连接失败，请稍后再试！"));
                                 write_to_log_dock(QString::fromUtf8(u8"[Proc_文件_InsertOneFile]服务器连接失败，请稍后再试！"));
                                 this->lock_all_input(false);
+                                m_file_transports->CloseConnection();
                                 return;
                             }
-                        }
-                        else
-                        {
-                            this->m_err_msg.push_back(QString::fromUtf8(u8"执行文件传输失败，请稍后再试！"));
+                        } else {
+                            wmemset(MyGlobal::ERR_MSG, 0, ERR_MSG_BUFF_LEN);
+                            m_file_transports->GetLastErrorMessage(MyGlobal::ERR_MSG, ERR_MSG_BUFF_LEN);
+                            this->m_err_msg.push_back(QString::fromUtf8(u8"执行文件传输失败，原因：%1，请稍后再试！").arg(QString::fromStdWString(MyGlobal::ERR_MSG)));
                             write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span> <span style=\"color:#F00\">%2</span>]上传到文件服务器失败！").arg(cur_code).arg(temp_dir.fileName()));
                             this->lock_all_input(false);
+                            m_file_transports->CloseConnection();
                             return;
                         }
                         qApp->processEvents();
@@ -1619,17 +1593,12 @@ void MainWindow::on_pushButtonOpenDir_clicked()
             }
             m_model_upload_data->setHeaderData(row,Qt::Vertical," ");
             qApp->processEvents();
-            //                this->m_model_upload_data->appendRow(new QStandardItem(""));
-            //                this->m_model_upload_data->removeRow(this->m_model_upload_data->rowCount()-1);
         }
         this->ui->tableViewUpload->resizeColumnsToContents();
         this->lock_all_input(false);
-
-
-
+    } else {
+        QMessageBox::warning(this, QString::fromUtf8(u8"警告"), QString::fromUtf8(u8"没有需要上传文件的图书！"));
     }
-
-
 }
 
 void MainWindow::on_pushButtonUploadDB_clicked()
@@ -1687,6 +1656,7 @@ void MainWindow::on_pushButtonUploadDB_clicked()
             sql_content += QString::fromUtf8("@kernel#%1#VarChar#in#$").arg(m_model_excel_data->item(row,col++)->text());//2020.06.12LXQ添加
             sql_content += QString::fromUtf8("@highcited#%1#VarChar#in#$").arg(m_model_excel_data->item(row,col++)->text());//2020.06.12LXQ添加
             sql_content += QString::fromUtf8("@year#%1#VarChar#in#$").arg(m_model_excel_data->item(row,col++)->text());//2020.12.14LXQ添加
+            sql_content += QString::fromUtf8("@usertype#%1#VarChar#in#$").arg(m_model_excel_data->item(row, col++)->text()); //2021.07.25ZK添加
             sql_content += QString::fromUtf8("@nRet##int#out#$");
             sql_content += QString::fromUtf8("@cError##VarChar#out#$");
 
@@ -1701,12 +1671,12 @@ void MainWindow::on_pushButtonUploadDB_clicked()
             //                                                           sql_content.toStdWString(),
             //                                                           web_result);
             int ret = soap_call_SER__executeStorageProcess(&m_web_service,
-                                                           NULL,
-                                                           NULL,
-                                                           m_db_key.toStdWString(),
-                                                           QString::fromUtf8(u8"Proc_接收登记_SvaeInfo_V6").toStdWString(),
-                                                           sql_content.toStdWString(),
-                                                           web_result);
+                NULL,
+                NULL,
+                m_db_key.toStdWString(),
+                QString::fromUtf8(u8"Proc_接收登记_SvaeInfo_V7").toStdWString(),
+                sql_content.toStdWString(),
+                web_result);
             if (ret == SOAP_OK)
             {
                 QString msg_data;
@@ -1774,8 +1744,7 @@ void MainWindow::on_pushButtonChooseFile_clicked()
     //初始化excel检查
     init_excel_checker();
     write_to_log_dock(QString::fromUtf8(u8"打开文件[<span style=\"color:#F00\">%1</span>]").arg(m_cur_excel_file_path));
-    if(!read_excel_model_file())
-    {
+    if (!read_excel_file_to_model()) {
         return;
     }
 
@@ -1905,7 +1874,7 @@ void MainWindow::on_pushButtonTest_clicked()
     auto cmd_out = QString::fromLocal8Bit(p.readAllStandardOutput());
     qDebug()<< cmd_out;
     //            auto cmd_out_lines = cmd_out.split(QString::fromUtf8(u8"\r\n"));
-    auto cmd_out_lines = cmd_out.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
+    auto cmd_out_lines = cmd_out.split(QRegExp("[\r\n]"));
     qDebug() << "all lines:" << cmd_out_lines.size();
     foreach(auto line,cmd_out_lines)
     {
@@ -1925,7 +1894,7 @@ void MainWindow::on_pushButtonTest_clicked()
 
 }
 
-void MainWindow::on_pushButtonBulkBookCommit_clicked()
+void MainWindow::on_pushButtonBulkBookSubmit_clicked()
 {
     auto all_selected_rows = m_upload_vheadeview->getAllSelected();
     if(all_selected_rows.empty())
@@ -1933,31 +1902,14 @@ void MainWindow::on_pushButtonBulkBookCommit_clicked()
         QMessageBox::warning(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"没有勾选任何图书！"));
         return;
     }
-    for(auto it = all_selected_rows.begin();it != all_selected_rows.end(); ++it)
-    {
-//        if(m_model_upload_data->item(*it,5)->text() != QString::fromUtf8(u8"是"))
-//        {
-//            QMessageBox::warning(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"[%1]尚未上传文件！").arg(m_model_upload_data->item(*it,1)->text()));
-//            continue;;
-//        }
-//        qDebug() << "slect " << *it;
-//        if(m_model_upload_data->item(*it,6)->text() == QString::fromUtf8(u8"已提交"))
-//        {
-//            //            QMessageBox::information(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"该记录已提交！"));
-//            write_to_log_dock(QString::fromUtf8(u8"[<span style=\"color:#F00\">%1</span>]-《<span style=\"color:#F00\">%2</span>》已提交，自动忽略！").arg(m_model_upload_data->item(*it,1)->text()).arg(m_model_upload_data->item(*it,2)->text()));
-//        }
-//        else
-//        {
-//            submit(*it);
-//        }
-if(m_model_upload_data->hasIndex(*it,1))
-{
-    submit(*it);
-}
+    for (auto it = all_selected_rows.begin(); it != all_selected_rows.end(); ++it) {
+        if (m_model_upload_data->hasIndex(*it, 1)) {
+            submit(*it);
+        }
     }
 }
 
-void MainWindow::on_pushButtonBatchCommit_clicked()
+void MainWindow::on_pushButtonBatchSubmit_clicked()
 {
     if(m_cur_batch_number.isEmpty())
     {
@@ -2032,26 +1984,7 @@ void MainWindow::on_pushButtonIndividualBookSubmit()
         return;
     }
     int cur_row = senderObj->property("row").toUInt();
-    //QMessageBox::information(this,"test",QString("cur row:") + QString::number(cur_row));
-//    if(m_model_upload_data->item(cur_row,5))
-//    {
-//        if(m_model_upload_data->item(cur_row,5)->text() != QString::fromUtf8(u8"是"))
-//        {
-//            QMessageBox::warning(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"[%1]尚未上传文件！").arg(m_model_upload_data->item(cur_row,1)->text()));
-//            return;
-//        }
-//        if(m_model_upload_data->item(cur_row,6)->text() == QString::fromUtf8(u8"已提交"))
-//        {
-//            QMessageBox::information(this,QString::fromUtf8(u8"提示"),QString::fromUtf8(u8"该记录已提交！"));
-//        }
-//        else
-//        {
-//            submit(cur_row);
-//        }
-
-//    }
-            submit(cur_row);
-
+    submit(cur_row);
 }
 
 void MainWindow::on_err_msg_show()
@@ -2085,8 +2018,7 @@ void MainWindow::on_select_all_rows()
     }
 }
 
-
-bool MainWindow::read_excel_model_file()
+bool MainWindow::read_excel_file_to_model()
 {
     if(m_cur_excel_file_path.isEmpty())
     {
@@ -2127,4 +2059,12 @@ bool MainWindow::read_excel_model_file()
     ui->tableView->resizeColumnsToContents();
     m_cur_tabview_state = tableview_show_type::SHOW_EXCEL_DATA;
     return true;
+}
+
+void MainWindow::on_pushButtonHelp_clicked()
+{
+    if (m_help_dialog == nullptr) {
+        m_help_dialog = HelpDialog::instance(this);
+    }
+    m_help_dialog->show();
 }

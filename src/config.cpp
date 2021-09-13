@@ -60,16 +60,15 @@ bool Config::make_config_xml(QString &config_file_path)
                      << QString::fromUtf8(u8"经典图书")
                      << QString::fromUtf8(u8"核心图书")
                      << QString::fromUtf8(u8"高被引图书")
-                     << QString::fromUtf8(u8"订单年");
-    for(int i = 0; i < temp_header_data.size(); ++i)
-    {
+                     << QString::fromUtf8(u8"订单年")
+                     << QString::fromUtf8(u8"用户类型");
+    for (int i = 0; i < temp_header_data.size(); ++i) {
         QString temp = col_name + QString::number(i);
         element = doc.createElement(temp.toUtf8().data());
         excel_header.appendChild(element);
         temp_text = doc.createTextNode(temp_header_data[i]);
         element.appendChild(temp_text);
     }
-
 
     QDomElement upload_header = doc.createElement("upload_header");
     root.appendChild(upload_header);
